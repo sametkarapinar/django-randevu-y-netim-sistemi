@@ -1,0 +1,674 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block css %}
+<link href="https://cdn.jsdelivr.net/npm/@coreui/coreui-pro@5.1.0/dist/css/coreui.min.css" rel="stylesheet" integrity="sha384-GEH24oINaP0CP7v1z+N804ebgDoavE2mUsfGGKLMDAukIK60qCLORzfAKEE7RWbb" crossorigin="anonymous">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css">
+{% endblock %}
+
+{% block content %}
+{% load format_phone from filters %}
+{% load format_date from filters %}
+<div class="page-body">
+                    
+        <div class="container-fluid"> {% include "layout/breadcrumb.html" %} 
+        <div class="row starter-main">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Genel Bilgiler</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="musteri-form" action="" method="post">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="isimsoysiim">İsim Soyisim</label>
+                                        <input type="text" class="form-control" id="isimsoysiim" name="isimsoysiim" value="{{musteri.name}}" >
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="phone">Telefon</label>
+                                        <input type="text" class="form-control" id="phone" name="phone" value="{{ musteri.phone|format_phone }}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="email">E-posta Adresi</label>
+                                        <input type="email" class="form-control" id="email" name="email" value="{{ musteri.mail }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="adress">Adres</label>
+                                        <textarea type="text" class="form-control" id="adress" name="adress">{{ musteri.address }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="dogumtarihi">Doğum Tarihi</label>
+                                        <input type="date" class="form-control" id="dogumtarihi" name="dogumtarihi" value="{{ musteri.birthdate|date:'Y-m-d' }}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-9">
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary" onclick="updateMusteri()">Güncelle</button>
+                                </div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card height-equal" style="height: 93%;"> 
+                    <div class="card-header card-no-border">
+                      <div class="header-top">
+                        <h5 class="m-0">Geçmiş Randevular <sup style="font-size: 12px;" class="text-muted">(Son 3 randevu)</sup></h5>
+                        
+                      </div>
+                    </div>
+                    <div class="card-body pt-0">
+                      <ul> 
+                        {% for randevu_item in sonrandevular %}
+                        <li class="d-flex">
+                            <div class="activity-dot-primary"></div>
+                            <div class="w-100 ms-3">
+                                <p class="d-flex justify-content-between mb-2"><span class="date-content light-background">Tarih {{ randevu_item.date|date:"d.m.Y" }}</span><span>{{ randevu_item.date|timesince }} önce</span></p>
+                                <h6>{{ randevu_item.hizmet }}</h6>
+                                <p class="f-light">{{ randevu_item.note }}</p>
+                            </div>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
+            </div>
+            <div class="row starter-main">
+                <div class="col-md-12"> 
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Siparişler</h5>
+                            <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".siparis">Yeni Sipariş Ekle</button>
+                        </div>
+                    <div class="card-body">
+                        <table class="table table-bordered" id="siparistable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Ürünler</th>
+                                    <th>Tarih</th>
+                                    <th>Fiyat</th>
+                                    <th>Kalan Borç</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for siparis_item in siparis %}
+                                <tr>
+                                <td>{{ siparis_item.id }}</td>
+                                <td>
+                                    {% for service in siparis_item.services %}
+                                    <span class="badge badge-primary">{{ service.name }}</span>
+                                    {% endfor %}
+                                </td>
+                                <td>{{ siparis_item.date|format_date }}</td>
+                                <td><span class="badge badge-success">{{ siparis_item.price|floatformat:0 }} TL</span></td>
+                                <td><span class="badge badge-danger">{{ siparis_item.debt|floatformat:0 }} TL</span></td>
+                                <td>
+                                    <a href=""><i class="fa-solid fa-eye"></i></a>
+                                    <a href=""><i class="fa-solid fa-solid fa-envelope"></i></a>
+                                    <a href="javascript:void(0)" onclick="siparisSil('{{siparis_item.id}}')"><i class="fa-solid fa-trash"></i></a>
+                                  </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row starter-main">
+                <div class="col-md-12"> 
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Ödemeler</h5>
+                            <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".odeme">Yeni Ödeme Ekle</button>
+                        </div>
+                    <div class="card-body">
+                        <table class="table table-bordered" id="odemetable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Tarih</th>
+                                    <th>Fiyat</th>
+                                    <th>Ödeme Yöntemi</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment_item in odeme %}
+                                <tr>
+                                <td>{{ payment_item.id }}</td>
+                                <td>{{ payment_item.date|format_date }}</td>
+                                <td><span class="badge badge-success">{{ payment_item.amount|floatformat:0 }} TL</span></td>
+                                <td><span class="badge badge-primary">{{ payment_item.method }}</span></td>
+                                <td>
+                                    <a href=""><i class="fa-solid fa-eye"></i></a>
+                                    <a href=""><i class="fa-solid fa-envelope"></i></a>
+                                  </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="row starter-main">
+                <div class="col-md-12"> 
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>Randevular</h5>
+                            <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".randevu">Yeni Randevu Ekle</button>
+                        </div>
+                    <div class="card-body">
+                        <table class="table table-bordered" id="randevutable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Hizmet</th>
+                                    <th>Tarih</th>
+                                    <th>Not</th>
+                                    <th>Durum</th>
+                                    <th>İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for randevu_table in randevular %}
+                                <tr>
+                                <td>{{ randevu_table.id }}</td>
+                                <td>
+                                    {% for service in randevu_table.services %}
+                                    <span class="badge badge-primary">{{ service.name }}</span>
+                                    {% endfor %}
+                                    
+                                </td>
+                                <td>{{ randevu_table.date|format_date }}</td>
+                                <td>{{ randevu_table.note|slice:":25" }}{% if randevu_table.note|length > 50 %}...{% endif %}</td>
+                                <td>{% if randevu_table.status == True %}
+                                    <span class="badge badge-success">Onaylandı</span>
+                                    {% else %}
+                                    <span class="badge badge-danger">Onaylanmadı</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if randevu_table.status == False %}
+                                        <span onclick="randevuOnayla({{ randevu_table.id }})">
+                                            <i class="fa-solid fa-square-check"></i>
+                                        </span>
+                                        <a href="">
+                                            <i class="fa-solid fa-envelope"></i>
+                                        </a>
+                                    {% else %}
+                                        <a href="">
+                                            <i class="fa-solid fa-envelope"></i>
+                                        </a>
+                                    {% endif %}
+                                </td>
+                                </tr>
+                                {% endfor %}
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+{% endblock  %}
+
+{% block scriptcontent %}
+<script src="https://cdn.jsdelivr.net/npm/@coreui/coreui-pro@5.1.0/dist/js/coreui.bundle.min.js" integrity="sha384-86eT557yN6+cWfDcCEUIjzKvSe8xM5LXynY586L2TwybjqoAzi5SJaQ4Bphcm3TF" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@coreui/coreui-pro@5.1.0/dist/js/coreui.min.js" integrity="sha384-rHRBeJCpSQHCO1FMe3Yd9kCfLAz87RwxA39ed+C2OKhqkALTKi5ubFBKSX9dX3Xb" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js"></script>
+<script>
+    $(document).ready(function() {
+        language_path = "{% static 'assets/js/datatables/datatable.turkish.json' %}";
+        $('#siparistable').DataTable({
+            "language": {
+                "url": language_path
+            }
+        });
+        $('#odemetable').DataTable({
+            "language": {
+                "url": language_path
+            }
+        });
+        $('#randevutable').DataTable({
+            "language": {
+                "url": language_path
+            }
+        });
+
+    });
+
+    function setDateTime() {
+        var now = new Date();
+    
+        var dateTimeField = document.getElementById("date");
+        var dateTimeFieldOdeme = document.getElementById("dateOdeme");
+    
+        var formattedDateTime = now.getFullYear() + '-' +
+            ('0' + (now.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + now.getDate()).slice(-2) + 'T' +
+            ('0' + now.getHours()).slice(-2) + ':' +
+            ('0' + now.getMinutes()).slice(-2);
+        
+        var formattedDateTimeOdeme = now.getFullYear() + '-' +
+            ('0' + (now.getMonth() + 1)).slice(-2) + '-' +
+            ('0' + now.getDate()).slice(-2) + 'T' +
+            ('0' + now.getHours()).slice(-2) + ':' +
+            ('0' + now.getMinutes()).slice(-2);
+
+        dateTimeField.value = formattedDateTime;
+        dateTimeFieldOdeme.value = formattedDateTimeOdeme;
+    }
+
+    function showToastify(message, type) {
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: 'right',
+            backgroundColor: type,
+        }).showToast();
+    }
+
+    function odemeEkle() {
+
+        const musteri = document.getElementById("musteri").getAttribute("data-id");
+        const dateOdeme = document.getElementById("dateOdeme");
+        const miktarOdeme = document.getElementById("miktarOdeme");
+        const paymentmethod = document.getElementById("paymentmethod");
+        const selectedMethod = paymentmethod.options[paymentmethod.selectedIndex].value;
+        const selectedSiparis = document.getElementById("siparisSecim");
+        
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_odeme_ekle' %}",
+            data: {
+                'musteri': musteri,
+                'date': dateOdeme.value,
+                'amount': miktarOdeme.value,
+                'method': selectedMethod,
+                'siparis': selectedSiparis.value,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(data) {
+                if (data.status == "success") {
+                    showToastify("Ödeme başarıyla eklendi.", "green");
+                    setTimeout(function() {
+                       location.reload();
+                    }, 1000);
+                } else {
+                    showToastify("Ödeme eklenirken bir hata oluştu.", "red");
+                }
+            }
+        });
+
+    }
+
+    function randevuEkle() {
+        const musteri = document.getElementById("musteriRandevu").getAttribute("data-id");
+        const date = document.getElementById("dateRandevu");
+        const note = document.getElementById("noteRandevu");
+        const selectedProduct = [];
+        const select = document.getElementById("serviceRandevu");
+        const options = select.options;
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].selected) {
+                selectedProduct.push(options[i].value);
+            }
+        }
+
+        console.log(musteri, date.value, note.value, selectedProduct);
+
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_randevu_ekle' %}",
+            data: {
+                'musteri': musteri,
+                'date': date.value,
+                'note': note.value,
+                'service': selectedProduct,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(data) {
+                if (data.status == "success") {
+                    showToastify("Randevu başarıyla eklendi.", "green");
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showToastify("Randevu eklenirken bir hata oluştu.", "red");
+                }
+            }
+        });
+    }
+    
+    function siparisEkle() {
+        const musteri = document.getElementById("musteri").getAttribute("data-id");
+        const date = document.getElementById("date");
+        const debt = document.getElementById("debt");
+        const selectedProduct = [];
+        const select = document.querySelector('.form-multi-select');
+        const options = select.options;
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].selected) {
+                selectedProduct.push(options[i].value);
+            }
+        }
+
+
+        console.log(musteri, date.value, debt.value, selectedProduct);
+
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_siparis_ekle' %}",
+            data: {
+                'musteri': musteri,
+                'date': date.value,
+                'debt': debt.value,
+                'service': selectedProduct,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(data) {
+                if (data.status == "success") {
+                    showToastify("Sipariş başarıyla eklendi.", "green");
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    showToastify("Sipariş eklenirken bir hata oluştu.", "red");
+                }
+            }
+        });
+    }
+
+    function updateMusteri() {
+        const isimsoysiim = document.getElementById("isimsoysiim");
+        const phone = document.getElementById("phone");
+        const email = document.getElementById("email");
+        const adress = document.getElementById("adress");
+        const dogumtarihi = document.getElementById("dogumtarihi");
+
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_musteri_guncelle' %}",
+            data: {
+                'uid': '{{ musteri.uid }}',
+                'name': isimsoysiim.value,
+                'phone': phone.value,
+                'email': email.value,
+                'adress': adress.value,
+                'dogumtarihi': dogumtarihi.value,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(data) {
+                if (data.status == "success") {
+                    showToastify("Müşteri başarıyla güncellendi.", "green");
+                    setTimeout(function() {
+                    }, 1000);
+                } else {
+                    showToastify("Müşteri güncellenirken bir hata oluştu.", "red");
+                }
+            }
+        });
+    }
+
+
+    function siparisSil(id) {
+
+        Swal.fire({
+            title: 'Silmek istediğinize emin misiniz?',
+            text: "Bu işlem geri alınamaz!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Evet, sil!',
+            cancelButtonText: 'İptal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'ajax_siparis_sil' %}",
+                    data: {
+                        'id': id,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        if (data.status == "success") {
+                            showToastify("Sipariş başarıyla silindi.", "green");
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToastify("Sipariş silinirken bir hata oluştu.", "red");
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+
+    function randevuOnayla(id) {
+        // SweetAlert ile fiyat bilgisi iste
+        Swal.fire({
+            title: 'Randevu Onayla',
+            text: "Randevuyu onaylamak istediğinize emin misiniz?",
+            showCancelButton: true,
+            confirmButtonText: 'Onayla',
+            cancelButtonText: 'İptal',
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'ajax_randevu_onayla' %}",
+                    data: {
+                        'id': id,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(data) {
+                        if (data.status == "success") {
+                            showToastify("Randevu başarıyla onaylandı.", "green");
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToastify("Randevu onaylanırken bir hata oluştu.", "red");
+                        }
+                    }
+                });
+            }
+        });
+    }
+</script>
+{% endblock %}
+
+
+{% block modalcontent %}
+<!-- Sipariş Modalı -->
+<div class="modal fade bd-example-modal-lg siparis" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Sipariş Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="musteri">Müşteri</label>
+                        <input type="text" class="form-control" id="musteri" name="musteri" value="{{ musteri.name }}" data-id="{{ musteri.uid }}" readonly>
+                        <a href="#" id="emailHelp" class="form-text text-muted"><small>Farklı müşterilere sipariş eklemek için tıklayın.</small></a>
+                    </div>
+                    
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date">Tarih ve Saat</label>
+                        <input type="datetime-local" class="form-control" id="date" name="date" onclick="setDateTime()">
+                    </div>
+                </div>
+            </div>                   
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="debt">Toplam Fiyat</label>
+                        <input type="text" class="form-control" id="debt" name="debt">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="service">Hizmetler</label>
+                        <select class="form-multi-select" multiple data-coreui-search="true" id="service">
+                            <optgroup label="Hizmetler">
+                                <option value="1">Saç Kesimi</option>
+                                <option value="2">Saç Boyama</option>
+                                <option value="3">Saç Bakımı</option>
+                            </optgroup>
+                          </select>
+                    </div>
+                </div>
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="siparisEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+<div class="modal fade bd-example-modal-lg odeme" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Ödeme Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="siparisSecim">Ödeme Yapılacak Sipariş</label>
+                        <select id="siparisSecim" class="form-select" >
+                        <option value="0">Sipariş Seçiniz.</option>
+                        {% for siparis_liste in siparis %}
+                        {% if siparis_liste.debt != 0 %}
+                        <option value="{{siparis_liste.id}}">Sipariş ID: {{siparis_liste.id}} | Kalan Borç: {{siparis_liste.debt}}</option>
+                        {% endif %}
+                        {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="dateOdeme">Tarih ve Saat</label>
+                        <input type="datetime-local" class="form-control" id="dateOdeme" name="dateOdeme" onclick="setDateTime()">
+                    </div>
+                </div>
+            </div>                   
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="miktarOdeme">Miktar</label>
+                        <input type="text" class="form-control" id="miktarOdeme" name="demiktarOdemebt">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="paymentmethod">Ödeme Yöntemi</label>
+                        <select class="form-select" id="paymentmethod" name="paymentmethod">
+                            <option value="0" disabled>Seçiniz</option>
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Kartı</option>
+                                <option value="3">Havale</option>
+                          </select>
+                    </div>
+                </div>
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="odemeEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- RANDEVU MODAL -->
+<div class="modal fade bd-example-modal-lg randevu" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Randevu Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="musteriRandevu">Müşteri</label>
+                        <input type="text" class="form-control" id="musteriRandevu" name="musteriRandevu" value="{{ musteri.name }}" data-id="{{ musteri.uid }}" readonly>
+                        <a href="#" id="emailHelp" class="form-text text-muted"><small>Farklı müşterilere sipariş eklemek için tıklayın.</small></a>
+                    </div>
+                    <div class="form-group">
+                        <label for="dateRandevu">Tarih ve Saat</label>
+                        <input type="datetime-local" class="form-control" id="dateRandevu" name="dateRandevu" onclick="setDateTime()">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="serviceRandevu">Hizmetler</label>
+                        <select class="form-multi-select" multiple data-coreui-search="true" id="serviceRandevu">
+                            <optgroup label="Hizmetler">
+                                {% for hizmet in hizmetler %}
+                                <option value="{{ hizmet.id }}">{{ hizmet.name }}</option>
+                                {% endfor %}
+
+                            </optgroup>
+                          </select>
+                          <div class="form-group">
+                            <label for="noteRandevu">Not</label>
+                            <textarea class="form-control" id="noteRandevu" name="noteRandevu"></textarea>
+                          </div>
+                    </div>
+                </div>
+            </div>                   
+                              
+            <div class="row mt-3">
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="randevuEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+
+
+  {% endblock %}
+

@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_phone from filters %}
+{% block css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="page-body">
+    <div class="container-fluid">
+      {% include 'layout/breadcrumb.html' %}
+      <div class="row starter-main">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header card-no-border">
+              <h5>Site Ayarları</h5>
+            </div>
+            <div class="card-body">
+                <form id="siteSettingsForm" method="POST">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="site_title">Site Başlığı</label>
+                        <input type="text" class="form-control" id="site_title" name="title" placeholder="Site Başlığını Girin">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="site_description">Site Açıklaması</label>
+                        <textarea class="form-control" id="site_description" name="description" rows="3" placeholder="Site Açıklamasını Girin"></textarea>
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="site_keywords">Anahtar Kelimeler</label>
+                        <input type="text" class="form-control" id="site_keywords" name="keywords" placeholder="Anahtar Kelimeleri Girin">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="site_logo">Logo URL</label>
+                        <input type="url" class="form-control" id="site_logo" name="logo" placeholder="Logo URL'sini Girin">
+                    </div>
+                    <div class="form-group mt-3">
+                        <label for="site_favicon">Favicon URL</label>
+                        <input type="url" class="form-control" id="site_favicon" name="favicon" placeholder="Favicon URL'sini Girin">
+                    </div>
+                    <br>
+                    <br>
+                    <br>
+                    <button type="button" class="btn btn-primary" onclick="updateSiteSettings()">Kaydet</button>
+                </form>
+            </div>
+            
+          </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+              <div class="card-header card-no-border">
+                <h5>Mail Ayarları</h5>
+              </div>
+              <div class="card-body">
+                <form>
+                  <div class="form-group">
+                    <label for="smtpServer">SMTP Sunucusu</label>
+                    <input type="text" class="form-control" id="smtpServer" placeholder="SMTP sunucu adresini girin">
+                  </div>
+                  <div class="form-group">
+                    <label for="smtpPort">SMTP Portu</label>
+                    <input type="text" class="form-control" id="smtpPort" placeholder="SMTP portunu girin">
+                  </div>
+                  <div class="form-group">
+                    <label for="smtpUser">SMTP Kullanıcı Adı</label>
+                    <input type="text" class="form-control" id="smtpUser" placeholder="SMTP kullanıcı adını girin">
+                  </div>
+                  <div class="form-group">
+                    <label for="smtpPassword">SMTP Şifresi</label>
+                    <input type="password" class="form-control" id="smtpPassword" placeholder="SMTP şifresini girin">
+                  </div>
+                  <div class="form-group">
+                    <label for="smtpEncryption">Şifreleme Türü</label>
+                    <select class="form-control" id="smtpEncryption">
+                      <option value="">Şifreleme türünü seçin</option>
+                      <option value="ssl">SSL</option>
+                      <option value="tls">TLS</option>
+                    </select>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Kaydet</button>
+                </form>
+              </div>
+            </div>
+          </div>
+      </div>
+      <div class="row starter-main">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header card-no-border">
+              <h5 class="card-title">Güvenlik Kayıtları</h5>
+            </div>
+            <div class="card-body">
+              <div class="list-group">
+                <a href="#" class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">15.05.2024 13:45</h6>
+                    <small>Kullanıcı girişi başarısız oldu.</small>
+                  </div>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">16.05.2024 10:22</h6>
+                    <small>Sistem güncellemesi tamamlandı.</small>
+                  </div>
+                </a>
+                <a href="#" class="list-group-item list-group-item-action">
+                  <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">17.05.2024 09:55</h6>
+                    <small>Yeni kullanıcı oluşturuldu: JohnDoe</small>
+                  </div>
+                </a>
+                <!-- Daha fazla log öğesi eklenebilir -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scriptcontent %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js"></script>
+  <script>
+    function toastifyMessage(message, color){
+        Toastify({
+            text: message,
+            duration: 3000,
+            close: true,
+            gravity: "top",
+            position: 'right',
+            backgroundColor: color,
+        }).showToast();
+    }
+
+    function updateSiteSettings() {
+        let formData = new FormData(document.getElementById("siteSettingsForm"));
+    
+        $.ajax({
+            url: "{% url 'update_site_settings' %}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                if (response.status === 'success') {
+                    toastifyMessage('Site ayarları başarıyla güncellendi.', 'green');
+                } else {
+                    toastifyMessage('Site ayarları güncellenirken bir hata oluştu.', 'red');
+                }
+            },
+            error: function (response) {
+                toastifyMessage('Site ayarları güncellenirken bir hata oluştu.', 'red');
+            }
+        });
+    }
+  </script>
+{% endblock %}

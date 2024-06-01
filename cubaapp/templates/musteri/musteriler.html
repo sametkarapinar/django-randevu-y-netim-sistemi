@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_phone from filters %}
+{% block css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css">
+{% endblock %}
+
+{% block content %}
+<div class="page-body">
+<div class="container-fluid">
+    {% include "layout/breadcrumb.html" %}
+    <div class="row starter-main">
+      <div class="col-md-12">
+        <div class="card">
+          <div class="card-header card-no-border">
+            <h5>Müşteri Listesi</h5>
+            <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".musteriekle">Yeni Müşteri Ekle</button>
+          </div>
+          <div class="card-body">
+            <table class="table table-hover" id="musteritable">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Adı Soyadı</th>
+                  <th scope="col">Telefon</th>
+                  <th scope="col">Email</th>
+                  <th scope="col">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                  {% for musteri in musteriler %}
+                  <tr>
+                  <th scope="row">{{ musteri.id }}</th>
+                  <td>{{ musteri.name }}</td>
+                  <td>{{ musteri.phone|format_phone }}</td>
+                  <td><a href="mailto:{{ musteri.mail }}">{{ musteri.mail }}</a></td>
+                  <td>
+                    <a href="{% url 'musteri_goruntule' musteri.id %}" title="Görüntüle & Düzenle"><i class="fa-solid fa-pen-to-square"></i></a>
+                    <a href="javascript:void(0)" onclick="musteriSil({{musteri.id}}, $(this).closest('tr'))" title="Müşteriyi Sil"><i class="fa-solid fa-trash"></i></a>
+                  </td>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock  %}
+    
+{% block modalcontent %}
+<!-- Sipariş Modalı -->
+<div class="modal fade bd-example-modal-lg siparis" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Sipariş Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="musteri">Müşteri</label>
+                        <input type="text" class="form-control" id="musteri" name="musteri" value="{{ musteri.name }}" data-id="{{ musteri.uid }}" readonly>
+                        <a href="#" id="emailHelp" class="form-text text-muted"><small>Farklı müşterilere sipariş eklemek için tıklayın.</small></a>
+                    </div>
+                    
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="date">Tarih ve Saat</label>
+                        <input type="datetime-local" class="form-control" id="date" name="date" onclick="setDateTime()">
+                    </div>
+                </div>
+            </div>                   
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="debt">Toplam Fiyat</label>
+                        <input type="text" class="form-control" id="debt" name="debt">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="service">Hizmetler</label>
+                        <select class="form-multi-select" multiple data-coreui-search="true" id="service">
+                            <optgroup label="Hizmetler">
+                                <option value="1">Saç Kesimi</option>
+                                <option value="2">Saç Boyama</option>
+                                <option value="3">Saç Bakımı</option>
+                            </optgroup>
+                          </select>
+                    </div>
+                </div>
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="siparisEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+<div class="modal fade bd-example-modal-lg odeme" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Ödeme Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="siparisSecim">Ödeme Yapılacak Sipariş</label>
+                        <select id="siparisSecim" class="form-select" >
+                        <option value="0">Sipariş Seçiniz.</option>
+                        {% for siparis_liste in siparis %}
+                        {% if siparis_liste.debt != 0 %}
+                        <option value="{{siparis_liste.id}}">Sipariş ID: {{siparis_liste.id}} | Kalan Borç: {{siparis_liste.debt}}</option>
+                        {% endif %}
+                        {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="dateOdeme">Tarih ve Saat</label>
+                        <input type="datetime-local" class="form-control" id="dateOdeme" name="dateOdeme" onclick="setDateTime()">
+                    </div>
+                </div>
+            </div>                   
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="miktarOdeme">Miktar</label>
+                        <input type="text" class="form-control" id="miktarOdeme" name="demiktarOdemebt">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="paymentmethod">Ödeme Yöntemi</label>
+                        <select class="form-select" id="paymentmethod" name="paymentmethod">
+                            <option value="0" disabled>Seçiniz</option>
+                                <option value="1">Nakit</option>
+                                <option value="2">Kredi Kartı</option>
+                                <option value="3">Havale</option>
+                          </select>
+                    </div>
+                </div>
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="odemeEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- RANDEVU MODAL -->
+<div class="modal fade bd-example-modal-lg musteriekle" tabindex="-1" role="dialog" aria-labelledby="siparisModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="siparisModal">Yeni Müşteri</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="name">Adı Soyadı</label>
+                        <input type="text" class="form-control" id="name" name="name">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="phone">Telefon</label>
+                        <input type="text" class="form-control" id="phone" name="phone">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="mail">Email</label>
+                        <input type="email" class="form-control" id="mail" name="mail">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="dogumtarihi">Doğum Tarihi</label>
+                        <input type="date" class="form-control" id="dogumtarihi" name="dogumtarihi">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="adres">Adres</label>
+                      <textarea class="form-control" id="adres" name="adres" rows="3" placeholder="Adres"></textarea>
+
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-md-12" style="margin-top: 15px;">
+                    <button type="button" class="btn btn-primary" style="float: right;" onclick="musteriEkle()">Ekle</button>
+                    <button type="button" class="btn btn-danger" style="float: right; margin-right: 5px;" data-bs-dismiss="modal">Kapat</button>
+                </div>
+            </div>                   
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scriptcontent %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js"></script>
+<script>
+
+  $(document).ready(function() {
+    language_path = "{% static 'assets/js/datatables/datatable.turkish.json' %}";
+    $('#musteritable').DataTable({
+        "language": {
+            "url": language_path
+        }
+    });
+
+});
+  
+  function toastifyMessage(message, type){
+    Toastify({
+      text: message,
+      duration: 3000,
+      close: true,
+      gravity: "top",
+      position: 'right',
+      backgroundColor: type,
+    }).showToast();
+  }
+
+function musteriEkle(){
+    var name = $('#name').val();
+    var phone = $('#phone').val();
+    var mail = $('#mail').val();
+    var dogumtarihi = $('#dogumtarihi').val();
+    var adres = $('#adres').val();
+
+    if(name == "" || phone == "" || mail == "" || dogumtarihi == "" || adres == ""){
+        toastifyMessage("Lütfen tüm alanları doldurunuz.", "red");
+        return;
+    }
+
+    $.ajax({
+        type: "POST",
+        url: "{% url 'ajax_musteri_ekle' %}",
+        data: {
+            'name': name,
+            'phone': phone,
+            'mail': mail,
+            'dogumtarihi': dogumtarihi,
+            'adres': adres,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(data){
+            if(data.status == "success"){
+                toastifyMessage("Müşteri başarıyla eklendi.", "green");
+                setTimeout(function(){
+                    location.reload();
+                }, 1000);
+            }else{
+                toastifyMessage("Müşteri eklenirken bir hata oluştu.", "red");
+            }
+        }
+    });
+  
+  }
+  function musteriSil(id, row){
+    if(confirm("Müşteriyi silmek istediğinize emin misiniz?")){
+        $.ajax({
+            type: "POST",
+            url: "{% url 'ajax_musteri_sil' %}",
+            data: {
+                'id': id,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response){
+                if(response.status === "success"){
+                    toastifyMessage("Müşteri başarıyla silindi.", "green");
+                    var table = $('#musteritable').DataTable();
+                    table.row(row).remove().draw();
+                }else{
+                    toastifyMessage("Müşteri silinirken bir hata oluştu.", "red");
+                }
+            },
+            error: function(xhr, textStatus, errorThrown) {
+                toastifyMessage("Müşteri silinirken bir hata oluştu.", "red");
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

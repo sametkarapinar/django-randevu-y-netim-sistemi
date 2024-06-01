@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_phone from filters %}
+{% block css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="page-body">
+    <div class="container-fluid">
+      {% include 'layout/breadcrumb.html' %}
+      <div class="row starter-main">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header card-no-border">
+              <h5>Hizmet Listesi</h5>
+              <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".hizmetekle">Yeni Hizmet Ekle</button>
+            </div>
+            <div class="card-body">
+              <table class="table table-hover" id="hizmetTable">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Hizmet Adı</th>
+                    <th scope="col">Fiyat</th>
+                    <th scope="col">Açıklama</th>
+                    <th scope="col">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for hizmet in hizmetler %}
+                    <tr>
+                      <th scope="row">{{ forloop.counter }}</th>
+                      <td>
+                        <span class="badge bg-primary">{{ hizmet.name }}</span>
+                      </td>
+                      <td>
+                        <span class="badge bg-success">{{ hizmet.price|floatformat:0 }} TL</span>
+                      </td>
+                      <td>{{ hizmet.description|truncatechars:50 }}</td>
+                      <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target=".hizmetduzenle" data-id="{{ hizmet.id }}"><i class="fa fa-edit"></i></a>
+                        <a href="#" onclick="deleteHizmet({{ hizmet.id }})"><i class="fa fa-trash"></i></a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scriptcontent %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js"></script>
+  <script>
+    $(document).ready(function () {
+      language_path = "{% static 'assets/js/datatables/datatable.turkish.json' %}"
+      $('#hizmetTable').DataTable({
+        language: {
+          url: language_path
+        }
+      })
+    })
+    
+    function toastifyMessage(message, type) {
+      Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: 'top',
+        position: 'right',
+        backgroundColor: type
+      }).showToast()
+    }
+    
+    $('.hizmetduzenle').on('show.bs.modal', function (event) {
+      var button = $(event.relatedTarget)
+      var hizmetId = button.data('id')
+    
+      var modal = $(this)
+      var hizmetTable = $('#hizmetTable').DataTable()
+    
+      var rowIndex = button.closest('tr').index()
+      var rowData = hizmetTable.row(rowIndex).data()
+    
+      var hizmetName = $(rowData[1]).text()
+      var hizmetPrice = $(rowData[2]).text().replace(' TL', '')
+      var hizmetDescription = rowData[3]
+    
+      modal.find('.modal-body #nameEdit').val(hizmetName)
+      modal.find('.modal-body #priceEdit').val(hizmetPrice)
+      modal.find('.modal-body #descriptionEdit').val(hizmetDescription)
+      modal.find('.modal-body #idEdit').val(hizmetId)
+      console.log(hizmetId)
+      console.log(hizmetName)
+      console.log(hizmetPrice)
+      console.log(hizmetDescription)
+    })
+    
+    function updateHizmet() {
+      var hizmetId = $('#idEdit').val()
+      var hizmetName = $('#nameEdit').val()
+      var hizmetPrice = $('#priceEdit').val()
+      var hizmetDescription = $('#descriptionEdit').val()
+    
+      $.ajax({
+        type: 'POST',
+        url: "{% url 'ajax_hizmet_guncelle' %}",
+        data: {
+          id: hizmetId,
+          name: hizmetName,
+          price: hizmetPrice,
+          description: hizmetDescription,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function (response) {
+          if (response.status == 'success') {
+            toastifyMessage('Hizmet başarıyla güncellendi.', 'green')
+            setTimeout(function () {
+              location.reload()
+            }, 1000)
+          } else {
+            toastifyMessage('Hizmet güncellenirken bir hata oluştu.', 'red')
+          }
+        }
+      })
+    }
+    
+    function deleteHizmet(id) {
+      $.ajax({
+        type: 'POST',
+        url: "{% url 'ajax_hizmet_sil' %}",
+        data: {
+          id: id,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function (response) {
+          if (response.status == 'success') {
+            toastifyMessage('Hizmet başarıyla silindi.', 'green')
+            setTimeout(function () {
+              location.reload()
+            }, 1000)
+          } else {
+            toastifyMessage('Hizmet silinirken bir hata oluştu.', 'red')
+          }
+        }
+      })
+    }
+    
+    function addHizmet() {
+      var hizmetName = $('#name').val()
+      var hizmetPrice = $('#price').val()
+      var hizmetDescription = $('#description').val()
+    
+      $.ajax({
+        type: 'POST',
+        url: "{% url 'ajax_hizmet_ekle' %}",
+        data: {
+          name: hizmetName,
+          price: hizmetPrice,
+          description: hizmetDescription,
+          csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+    
+        success: function (response) {
+          if (response.status == 'success') {
+            toastifyMessage('Hizmet başarıyla eklendi.', 'green')
+            setTimeout(function () {
+              location.reload()
+            }, 1000)
+          } else {
+            toastifyMessage('Hizmet eklenirken bir hata oluştu.', 'red')
+          }
+        }
+      })
+    }
+  </script>
+{% endblock %}
+
+{% block modalcontent %}
+  <!-- Hizmet Ekle Modal -->
+  <div class="modal fade bd-example-modal-lg hizmetekle" tabindex="-1" role="dialog" aria-labelledby="hizmetEkleModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="hizmetEkleModal">Yeni Hizmet Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+          <form action="" method="POST">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="name">Hizmet Adı</label>
+                  <input type="text" class="form-control" id="name" name="name" required />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="price">Fiyat</label>
+                  <input type="number" class="form-control" id="price" name="price" required />
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="description">Açıklama</label>
+                  <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                  <small class="form-text text-muted">Hizmetin açıklamasını giriniz.</small>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+              <button type="button" onclick="addHizmet()" class="btn btn-primary">Kaydet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hizmet Düzenle Modal -->
+  <div class="modal fade bd-example-modal-lg hizmetduzenle" tabindex="-1" role="dialog" aria-labelledby="hizmetDuzenleModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="hizmetDuzenleModal">Hizmet Düzenle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+          <form action="" method="POST">
+            <input type="hidden" name="idEdit" id="idEdit" />
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="nameEdit">Hizmet Adı</label>
+                  <input type="text" class="form-control" id="nameEdit" name="nameEdit" required />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="priceEdit">Fiyat</label>
+                  <input type="number" class="form-control" id="priceEdit" name="priceEdit" required />
+                  <small class="form-text text-muted">Hizmet fıyatını sadece sayı olacak şeklide giriniz.</small>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="descriptionEdit">Açıklama</label>
+                  <textarea class="form-control" id="descriptionEdit" name="descriptionEdit" rows="3" required></textarea>
+                  <small class="form-text text-muted">Hizmetin açıklamasını giriniz.</small>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+              <button type="button" onclick="updateHizmet()" class="btn btn-primary">Kaydet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
