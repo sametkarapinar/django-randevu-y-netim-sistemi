@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load format_phone from filters %}
+{% block css %}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.css" />
+{% endblock %}
+
+{% block content %}
+  <div class="page-body">
+    <div class="container-fluid">
+      {% include 'layout/breadcrumb.html' %}
+      <div class="row starter-main">
+        <div class="col-md-12">
+          <div class="card">
+            <div class="card-header card-no-border">
+              <h5>Banka Hesapları</h5>
+              <button type="button" class="btn btn-primary" style="float: right;" data-bs-toggle="modal" data-bs-target=".bankaekle">Yeni Hesap Ekle</button>
+            </div>
+            <div class="card-body">
+              <table class="table table-hover" id="bankaTable">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Banka Adı</th>
+                    <th scope="col">Hesap Sahibi</th>
+                    <th scope="col">Açıklama</th>
+                    <th scope="col">IBAN</th>
+                    <th scope="col">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for banka in bankalar %}
+                    <tr>
+                      <th scope="row">{{ forloop.counter }}</th>
+                      <td>
+                        <span class="badge bg-primary">{{ banka.name }}</span>
+                      </td>
+                      <td>
+                        <span class="badge bg-success">{{ banka.owner}}</span>
+                      </td>
+                      <td>
+                        {{ banka.description}}
+                      </td>
+                      <td>{{ banka.iban }}</td>
+                      <td>
+                        <a href="#" data-bs-toggle="modal" data-bs-target=".bankaduzenle" data-id="{{ banka.id }}"><i class="fa fa-edit"></i></a>
+                        <a href="#" onclick="deleteBanka({{ banka.id }})"><i class="fa fa-trash"></i></a>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block scriptcontent %}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.6.1/toastify.js"></script>
+  <script>
+    $(document).ready(function () {
+      language_path = "{% static 'assets/js/datatables/datatable.turkish.json' %}"
+      $('#bankaTable').DataTable({
+        language: {
+          url: language_path
+        }
+      })
+    })
+    
+    function toastifyMessage(message, type) {
+      Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: 'top',
+        position: 'right',
+        backgroundColor: type
+      }).showToast()
+    }
+
+    function addBank(){
+        var bankName = $('#bankName').val()
+        var bankOwner = $('#bankOwner').val()
+        var bankDescription = $('#bankDescription').val()
+        var bankIBAN = $('#bankIBAN').val()
+        
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'ajax_banka_ekle' %}",
+            data: {
+            'bankName': bankName,
+            'bankOwner': bankOwner,
+            'bankDescription': bankDescription,
+            'bankIBAN': bankIBAN,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function (response) {
+            if (response['status'] == 200) {
+                toastifyMessage(response['message'], 'green')
+                setTimeout(() => {
+                location.reload()
+                }, 1000)
+            } else {
+                toastifyMessage(response['message'], 'red')
+            }
+            }
+        })
+    }
+    $('.bankaduzenle').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var id = button.data('id');
+
+        var table = $('#bankaTable').DataTable();
+        var data = table.row(button.parents('tr')).data();
+
+        var bankId = $(data[0]).text();
+        var bankName = $(data[1]).text();
+        var bankOwner = $(data[2]).text();
+        var bankDescription = data[3];
+        var bankIBAN = data[4];
+
+        $('#bankId').val(id);
+        $('#bankNameEdit').val(bankName);
+        $('#bankOwnerEdit').val(bankOwner);
+        $('#bankDescriptionEdit').val(bankDescription);
+        $('#bankIBANEdit').val(bankIBAN);
+    });
+
+    function editBank(){
+        var bankId = $('#bankId').val()
+        var bankName = $('#bankNameEdit').val()
+        var bankOwner = $('#bankOwnerEdit').val()
+        var bankDescription = $('#bankDescriptionEdit').val()
+        var bankIBAN = $('#bankIBANEdit').val()
+        
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'ajax_banka_duzenle' %}",
+            data: {
+            'bankId': bankId,
+            'bankName': bankName,
+            'bankOwner': bankOwner,
+            'bankDescription': bankDescription,
+            'bankIBAN': bankIBAN,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function (response) {
+            if (response.status == "success") {
+                toastifyMessage("Banka başarıyla güncellendi", 'green')
+                setTimeout(() => {
+                location.reload()
+                }, 1000)
+            } else {
+                toastifyMessage("Banka güncellenirken bir hata oluştu", 'red')
+            }
+            }
+        })
+    }
+
+
+  </script>
+{% endblock %}
+
+{% block modalcontent %}
+  <!-- Banka Ekle Modal -->
+  <div class="modal fade bd-example-modal-lg bankaekle" tabindex="-1" role="dialog" aria-labelledby="hizmetEkleModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="hizmetEkleModal">Yeni Hesap Ekle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+          <form action="" method="POST">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="bankName">Banka Adı</label>
+                  <input type="text" class="form-control" id="bankName" name="bankName" required />
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="bankOwner">Hesap Sahibi</label>
+                  <input type="text" class="form-control" id="bankOwner" name="bankOwner" required />
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="bankDescription">Açıklama</label>
+                  <textarea class="form-control" id="bankDescription" name="bankDescription" rows="3" required></textarea>
+                </div>
+              </div>
+              <div class="col-md-12">
+                <div class="form-group">
+                  <label for="bankIBAN">IBAN</label>
+                  <input class="form-control" id="bankIBAN" name="bankIBAN" required>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+              <button type="button" onclick="addBank()" class="btn btn-primary">Kaydet</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hizmet Düzenle Modal -->
+  <div class="modal fade bd-example-modal-lg bankaduzenle" tabindex="-1" role="dialog" aria-labelledby="bankaDuzenleModal" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="bankaDuzenleModal">Hesap Düzenle</h4>
+          <button class="btn-close py-0" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body dark-modal">
+            <form action="" method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="bankId" name="bankId" / value="">
+                <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="bankNameEdit">Banka Adı</label>
+                        <input type="text" class="form-control" id="bankNameEdit" name="bankNameEdit" required />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="bankOwnerEdit">Hesap Sahibi</label>
+                        <input type="text" class="form-control" id="bankOwnerEdit" name="bankOwnerEdit" required />
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="bankDescriptionEdit">Açıklama</label>
+                        <textarea class="form-control" id="bankDescriptionEdit" name="bankDescriptionEdit" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-group">
+                        <label for="bankIBANEdit">IBAN</label>
+                        <input class="form-control" id="bankIBANEdit" name="bankIBANEdit" required></input>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" onclick="editBank()" class="btn btn-primary">Kaydet</button>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
