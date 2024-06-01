@@ -18,15 +18,15 @@ Bu sistem, müşterilerin randevularını, ödemelerini ve hizmetlerini takip et
 
 Gerekli bağımlılıkları yükleyin:
 
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 
 Veritabanı migrasyonlarını çalıştırın:
 
-python manage.py migrate
+```python manage.py migrate```
 
 Geliştirme sunucusunu başlatın:
 
-python manage.py runserver
+```python manage.py runserver```
 
 
 # Kullanım
